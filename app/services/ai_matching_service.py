@@ -1,7 +1,14 @@
 from typing import List, Dict, Any, Optional
 import logging
 import json
-import openai
+
+try:
+    import openai
+    OPENAI_AVAILABLE = True
+except ImportError:
+    OPENAI_AVAILABLE = False
+    openai = None
+
 from flask import current_app
 from app.models.candidate import Candidate
 from app.models.job_description import JobDescription
@@ -13,6 +20,9 @@ class AIResumeMatchingService:
     """AI-powered resume matching service using OpenAI GPT"""
     
     def __init__(self):
+        if not OPENAI_AVAILABLE:
+            raise MatchingServiceError("OpenAI package not available. Install with: pip install openai")
+        
         self.api_key = current_app.config.get('OPENAI_API_KEY')
         self.model = current_app.config.get('OPENAI_MODEL', 'gpt-4o-mini')
         
