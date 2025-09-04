@@ -12,7 +12,12 @@ class BaseConfig:
     ALLOWED_EXTENSIONS = {'pdf', 'doc', 'docx', 'txt'}
     
     # Database - Default to SQLite for development
-    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL', 'sqlite:///rsart.db')
+    # Fix for Render PostgreSQL URL format
+    database_url = os.environ.get('DATABASE_URL', 'sqlite:///rsart.db')
+    if database_url.startswith('postgres://'):
+        database_url = database_url.replace('postgres://', 'postgresql://', 1)
+    SQLALCHEMY_DATABASE_URI = database_url
+    
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     SQLALCHEMY_ENGINE_OPTIONS = {
         'pool_pre_ping': True,
@@ -55,7 +60,11 @@ class ProductionConfig(BaseConfig):
     SECRET_KEY = os.environ.get('SECRET_KEY')
     
     # Database URL is required in production
-    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL')
+    # Fix for Render PostgreSQL URL format
+    database_url = os.environ.get('DATABASE_URL')
+    if database_url and database_url.startswith('postgres://'):
+        database_url = database_url.replace('postgres://', 'postgresql://', 1)
+    SQLALCHEMY_DATABASE_URI = database_url
     
     # Additional production database settings
     SQLALCHEMY_ENGINE_OPTIONS = {

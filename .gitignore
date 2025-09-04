@@ -1,7 +1,4 @@
-# Virtual Environment
-venv/
-.venv/
-env/
+# Environment variables
 .env
 
 # Python
@@ -25,84 +22,46 @@ wheels/
 *.egg-info/
 .installed.cfg
 *.egg
-MANIFEST
 
-# PyInstaller
-*.manifest
-*.spec
-
-# Installer logs
-pip-log.txt
-pip-delete-this-directory.txt
-
-# Unit test / coverage reports
-htmlcov/
-.tox/
-.coverage
-.coverage.*
-.cache
-nosetests.xml
-coverage.xml
-*.cover
-.hypothesis/
-.pytest_cache/
-
-# Jupyter Notebook
-.ipynb_checkpoints
-
-# pyenv
-.python-version
-
-# Environments
-.env
-.venv
-env/
+# Virtual environments
 venv/
+env/
 ENV/
-env.bak/
-venv.bak/
-
-# Spyder project settings
-.spyderproject
-.spyproject
-
-# Rope project settings
-.ropeproject
-
-# mkdocs documentation
-/site
-
-# mypy
-.mypy_cache/
-.dmypy.json
-dmypy.json
 
 # IDE
 .vscode/
 .idea/
 *.swp
 *.swo
-*~
 
 # OS
 .DS_Store
-.DS_Store?
-._*
-.Spotlight-V100
-.Trashes
-ehthumbs.db
 Thumbs.db
-
-# Database
-*.db
-*.sqlite3
-instance/
 
 # Logs
 logs/
 *.log
 
-# Application specific
-data/uploaded_resumes/
-data/job_descriptions/
-temp/
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Uploads (for development)
+data/uploaded_resumes/*.pdf
+data/uploaded_resumes/*.doc
+data/uploaded_resumes/*.docx
+data/uploaded_resumes/*.txt
+
+# Keep directory structure
+!data/uploaded_resumes/.gitkeep
+!data/job_descriptions/.gitkeep
+
+# Testing
+.coverage
+htmlcov/
+.pytest_cache/
+.tox/
+
+# Render
+render.yaml.lock
