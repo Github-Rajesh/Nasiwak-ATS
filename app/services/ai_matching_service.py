@@ -44,14 +44,33 @@ class AIResumeMatchingService:
                 logger.warning("No candidates provided for AI matching")
                 return []
             
-            # Process candidates in batches to avoid token limits
-            batch_size = 5  # Process 5 resumes at a time
-            all_scored_candidates = []
+            # Separate candidates that need analysis from those already analyzed
+            candidates_to_analyze = []
+            already_analyzed = []
             
-            for i in range(0, len(candidates), batch_size):
-                batch = candidates[i:i+batch_size]
-                scored_batch = self._analyze_batch(job_description, batch)
-                all_scored_candidates.extend(scored_batch)
+            for candidate in candidates:
+                if (hasattr(candidate, 'score') and candidate.score is not None and 
+                    hasattr(candidate, 'ai_analysis') and candidate.ai_analysis):
+                    # Candidate already has AI analysis, preserve it
+                    already_analyzed.append(candidate)
+                    logger.debug(f"Preserving existing analysis for {candidate.display_name} (score: {candidate.score})")
+                else:
+                    # Candidate needs analysis
+                    candidates_to_analyze.append(candidate)
+            
+            logger.info(f"Found {len(already_analyzed)} already analyzed candidates, {len(candidates_to_analyze)} need analysis")
+            
+            # Process only candidates that need analysis
+            all_scored_candidates = already_analyzed.copy()
+            
+            if candidates_to_analyze:
+                # Process candidates in batches to avoid token limits
+                batch_size = 5  # Process 5 resumes at a time
+                
+                for i in range(0, len(candidates_to_analyze), batch_size):
+                    batch = candidates_to_analyze[i:i+batch_size]
+                    scored_batch = self._analyze_batch(job_description, batch)
+                    all_scored_candidates.extend(scored_batch)
             
             # Sort by AI score
             ranked_candidates = sorted(all_scored_candidates, 

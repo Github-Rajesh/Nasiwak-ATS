@@ -1,12 +1,18 @@
 from flask import Blueprint, request, render_template, redirect, url_for, flash, jsonify, send_file, current_app
 from pathlib import Path
+import zipfile
+import csv
+import io
+import tempfile
+import os
 from app.services.resume_parser import ResumeParserFactory
 from app.services.matching_service import ResumeMatchingService
 from app.services.ai_matching_service import AIResumeMatchingService
 from app.services.file_service import FileService
+from app.services.duplicate_detection_service import DuplicateDetectionService
 from app.models.job_description import JobDescription
 from app.utils.decorators import login_required
-from app.utils.exceptions import ResumeParsingError, MatchingServiceError, FileServiceError
+from app.utils.exceptions import ResumeParsingError, MatchingServiceError, FileServiceError, DuplicateDetectionError
 import logging
 
 logger = logging.getLogger(__name__)
@@ -74,6 +80,22 @@ def process_resumes():
         if not candidates:
             flash('No resumes could be parsed successfully', 'error')
             return redirect(url_for('main.index'))
+        
+        # Detect and remove duplicates
+        try:
+            duplicate_service = DuplicateDetectionService()
+            duplicates = duplicate_service.detect_duplicates(candidates)
+            
+            if duplicates:
+                logger.info(f"Found {len(duplicates)} duplicate pairs")
+                candidates = duplicate_service.remove_duplicates(candidates, duplicates)
+                flash(f'Removed {len(duplicates)} duplicate resumes. Processing {len(candidates)} unique candidates.', 'info')
+            else:
+                logger.info("No duplicates found")
+                
+        except DuplicateDetectionError as e:
+            logger.warning(f"Duplicate detection failed: {e}")
+            flash('Duplicate detection failed, proceeding with all resumes', 'warning')
 
         # Match candidates using AI or traditional method
         use_ai = current_app.config.get('USE_AI_MATCHING', False)
@@ -193,4 +215,114 @@ def upload_resume():
     except Exception as e:
         logger.error(f"Error uploading resume: {e}")
         flash('Failed to upload resume', 'error')
+        return redirect(url_for('main.index'))
+
+@resume_bp.route('/bulk_download', methods=['POST'])
+@login_required
+def bulk_download_resumes():
+    """Download all resumes as a ZIP file"""
+    try:
+        # Get the candidates data from the session or request
+        candidates_data = request.get_json()
+        if not candidates_data or 'candidates' not in candidates_data:
+            flash('No candidates data provided', 'error')
+            return redirect(url_for('main.index'))
+        
+        candidates = candidates_data['candidates']
+        if not candidates:
+            flash('No candidates to download', 'error')
+            return redirect(url_for('main.index'))
+        
+        # Create a temporary ZIP file
+        temp_zip = io.BytesIO()
+        
+        with zipfile.ZipFile(temp_zip, 'w', zipfile.ZIP_DEFLATED) as zip_file:
+            file_service = FileService()
+            
+            for candidate in candidates:
+                if candidate.get('resume_path'):
+                    resume_filename = candidate['resume_path']
+                    resume_path = file_service.upload_folder / resume_filename
+                    
+                    if resume_path.exists():
+                        # Add file to ZIP with a clean name
+                        clean_name = f"{candidate.get('name', 'Unknown')}_{resume_filename}"
+                        zip_file.write(resume_path, clean_name)
+                    else:
+                        logger.warning(f"Resume file not found: {resume_path}")
+        
+        temp_zip.seek(0)
+        
+        return send_file(
+            temp_zip,
+            as_attachment=True,
+            download_name='resumes_bulk_download.zip',
+            mimetype='application/zip'
+        )
+        
+    except Exception as e:
+        logger.error(f"Error creating bulk download: {e}")
+        flash('Failed to create bulk download', 'error')
+        return redirect(url_for('main.index'))
+
+@resume_bp.route('/export_csv', methods=['POST'])
+@login_required
+def export_csv():
+    """Export candidates data as CSV"""
+    try:
+        # Get the candidates data from the session or request
+        candidates_data = request.get_json()
+        if not candidates_data or 'candidates' not in candidates_data:
+            flash('No candidates data provided', 'error')
+            return redirect(url_for('main.index'))
+        
+        candidates = candidates_data['candidates']
+        if not candidates:
+            flash('No candidates to export', 'error')
+            return redirect(url_for('main.index'))
+        
+        # Create CSV content
+        output = io.StringIO()
+        writer = csv.writer(output)
+        
+        # Write header
+        writer.writerow([
+            'Rank', 'Name', 'Email', 'Phone', 'Skills', 'Score', 
+            'AI Analysis', 'Strengths', 'Concerns', 'Resume File'
+        ])
+        
+        # Write candidate data
+        for candidate in candidates:
+            # Format lists as comma-separated strings
+            skills_str = ', '.join(candidate.get('skills', []))
+            strengths_str = ', '.join(candidate.get('ai_strengths', []))
+            concerns_str = ', '.join(candidate.get('ai_concerns', []))
+            
+            writer.writerow([
+                candidate.get('rank', ''),
+                candidate.get('name', ''),
+                candidate.get('email', ''),
+                candidate.get('phone', ''),
+                skills_str,
+                candidate.get('score', ''),
+                candidate.get('ai_analysis', ''),
+                strengths_str,
+                concerns_str,
+                candidate.get('resume_path', '')
+            ])
+        
+        output.seek(0)
+        
+        # Create response with CSV content
+        response = current_app.response_class(
+            output.getvalue(),
+            mimetype='text/csv',
+            headers={'Content-Disposition': 'attachment; filename=candidates_analysis.csv'}
+        )
+        
+        return response
+        
+    except Exception as e:
+        logger.error(f"Error exporting CSV: {e}")
+        flash('Failed to export CSV', 'error')
         return redirect(url_for('main.index'))

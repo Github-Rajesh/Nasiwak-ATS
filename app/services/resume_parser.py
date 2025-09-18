@@ -49,9 +49,28 @@ class BaseResumeParser(ResumeParserInterface):
     
     def _extract_phone(self, text: str) -> Optional[str]:
         """Extract phone number from text"""
-        phone_pattern = r'(\+?\d{1,3}[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}'
-        phones = re.findall(phone_pattern, text)
-        return ''.join(phones[0]) if phones else None
+        # Multiple phone patterns to catch different formats
+        phone_patterns = [
+            r'(\+91[\s-]?)?[6-9]\d{9}',  # Indian mobile numbers with +91
+            r'(\+91[\s-]?)?[0-9]{10}',   # 10-digit numbers with +91
+            r'(\+?\d{1,3}[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}',  # General international format
+            r'[6-9]\d{9}',  # Indian mobile without country code
+            r'\b\d{10}\b',  # 10-digit standalone numbers
+            r'(\+91[\s-]?)?[0-9]{3}[-.\s]?[0-9]{3}[-.\s]?[0-9]{4}',  # Formatted Indian numbers
+        ]
+        
+        for pattern in phone_patterns:
+            phones = re.findall(pattern, text)
+            if phones:
+                # Clean up the phone number
+                phone = ''.join(phones[0]) if isinstance(phones[0], tuple) else phones[0]
+                # Remove extra spaces and normalize
+                phone = re.sub(r'[^\d+]', '', phone)
+                # Ensure it's a valid length (10-15 digits including country code)
+                if 10 <= len(phone) <= 15:
+                    return phone
+        
+        return None
     
     def _extract_name(self, text: str) -> Optional[str]:
         """Extract name from text (simplified implementation)"""

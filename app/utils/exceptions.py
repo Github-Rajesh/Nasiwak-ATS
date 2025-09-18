@@ -21,3 +21,7 @@ class AuthenticationError(RSARTException):
 class ValidationError(RSARTException):
     """Exception raised when validation fails"""
     pass
+
+class DuplicateDetectionError(RSARTException):
+    """Exception raised when duplicate detection fails"""
+    pass
