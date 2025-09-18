@@ -19,6 +19,10 @@ class CandidateModel(db.Model):
     resume_text = Column(Text)
     score = Column(Float)
     rank = Column(Integer)
+    # AI Analysis fields
+    ai_analysis = Column(Text)
+    ai_strengths = Column(Text)  # JSON string
+    ai_concerns = Column(Text)  # JSON string
     created_at = Column(DateTime, default=func.now())
     is_active = Column(Boolean, default=True)
     
@@ -38,7 +42,10 @@ class CandidateModel(db.Model):
             resume_path=Path(self.resume_path) if self.resume_path else None,
             resume_text=self.resume_text,
             score=self.score,
-            rank=self.rank
+            rank=self.rank,
+            ai_analysis=self.ai_analysis,
+            ai_strengths=json.loads(self.ai_strengths) if self.ai_strengths else [],
+            ai_concerns=json.loads(self.ai_concerns) if self.ai_concerns else []
         )
     
     @classmethod
@@ -56,7 +63,10 @@ class CandidateModel(db.Model):
             resume_path=str(candidate.resume_path) if candidate.resume_path else None,
             resume_text=candidate.resume_text,
             score=candidate.score,
-            rank=candidate.rank
+            rank=candidate.rank,
+            ai_analysis=candidate.ai_analysis,
+            ai_strengths=json.dumps(candidate.ai_strengths),
+            ai_concerns=json.dumps(candidate.ai_concerns)
         )
 
 class JobDescriptionModel(db.Model):

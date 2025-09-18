@@ -10,9 +10,10 @@ from app.services.matching_service import ResumeMatchingService
 from app.services.ai_matching_service import AIResumeMatchingService
 from app.services.file_service import FileService
 from app.services.duplicate_detection_service import DuplicateDetectionService
+from app.services.candidate_persistence_service import CandidatePersistenceService
 from app.models.job_description import JobDescription
 from app.utils.decorators import login_required
-from app.utils.exceptions import ResumeParsingError, MatchingServiceError, FileServiceError, DuplicateDetectionError
+from app.utils.exceptions import ResumeParsingError, MatchingServiceError, FileServiceError, DuplicateDetectionError, CandidatePersistenceError
 import logging
 
 logger = logging.getLogger(__name__)
@@ -74,8 +75,23 @@ def process_resumes():
             flash('No resume files found. Please upload some resumes first.', 'error')
             return redirect(url_for('main.index'))
         
-        candidates = _parse_resume_files(resume_files)
-        print(f"DEBUG: Parsed {len(candidates)} candidates")
+        # Try to load existing candidates from database first
+        persistence_service = CandidatePersistenceService()
+        resume_paths = [str(f) for f in resume_files]
+        existing_candidates = persistence_service.load_candidates_by_resume_paths(resume_paths)
+        
+        # Parse any new resume files that aren't in the database
+        existing_paths = {c.resume_path for c in existing_candidates if c.resume_path}
+        new_resume_files = [f for f in resume_files if str(f) not in existing_paths]
+        
+        new_candidates = []
+        if new_resume_files:
+            new_candidates = _parse_resume_files(new_resume_files)
+            print(f"DEBUG: Parsed {len(new_candidates)} new candidates")
+        
+        # Combine existing and new candidates
+        candidates = existing_candidates + new_candidates
+        print(f"DEBUG: Total candidates: {len(candidates)} (existing: {len(existing_candidates)}, new: {len(new_candidates)})")
         
         if not candidates:
             flash('No resumes could be parsed successfully', 'error')
@@ -141,6 +157,14 @@ def process_resumes():
                 flash('Set OPENAI_API_KEY environment variable to enable AI analysis', 'info')
         
         logger.info(f"Successfully processed {len(ranked_candidates)} candidates")
+        
+        # Save candidates to database for future consistency
+        try:
+            persistence_service.save_candidates(ranked_candidates)
+            logger.info("Successfully saved candidates to database")
+        except CandidatePersistenceError as e:
+            logger.warning(f"Failed to save candidates to database: {e}")
+            # Continue without failing the request
         
         return render_template('results.html', 
                              candidates=ranked_candidates,

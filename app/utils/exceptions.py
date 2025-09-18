@@ -25,3 +25,7 @@ class ValidationError(RSARTException):
 class DuplicateDetectionError(RSARTException):
     """Exception raised when duplicate detection fails"""
     pass
+
+class CandidatePersistenceError(RSARTException):
+    """Exception raised when candidate persistence fails"""
+    pass

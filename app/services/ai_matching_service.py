@@ -49,8 +49,10 @@ class AIResumeMatchingService:
             already_analyzed = []
             
             for candidate in candidates:
-                if (hasattr(candidate, 'score') and candidate.score is not None and 
-                    hasattr(candidate, 'ai_analysis') and candidate.ai_analysis):
+                # Check if candidate has been previously analyzed by looking for AI analysis
+                # We use ai_analysis as the primary indicator since score might be 0.0
+                if (hasattr(candidate, 'ai_analysis') and candidate.ai_analysis and 
+                    candidate.ai_analysis not in ['Analysis incomplete', 'AI analysis parsing failed - using fallback scoring']):
                     # Candidate already has AI analysis, preserve it
                     already_analyzed.append(candidate)
                     logger.debug(f"Preserving existing analysis for {candidate.display_name} (score: {candidate.score})")
