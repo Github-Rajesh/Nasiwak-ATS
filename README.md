@@ -8,9 +8,13 @@ A intelligent web application that helps HR professionals and recruiters efficie
 - **Intelligent Matching**: Advanced algorithms to match resumes with job descriptions
 - **AI-Powered Enhancement**: Optional OpenAI integration for semantic matching
 - **Comprehensive Scoring**: Multi-factor scoring system for candidate ranking
+- **Score Consistency**: Preserve existing analysis when rerunning on previously analyzed resumes
+- **Bulk Download**: Download all resumes as a single ZIP file with clean naming
+- **CSV Export**: Export detailed analysis data including scores, AI analysis, and candidate information
+- **Duplicate Detection**: Automatically detect and remove duplicate resumes based on multiple criteria
+- **Enhanced Contact Extraction**: Improved phone number extraction showing complete numbers
 - **User-Friendly Interface**: Clean, responsive web interface
 - **Bulk Processing**: Handle multiple resumes simultaneously
-- **Export Results**: Download matching results for further analysis
 
 ## 🚀 Live Demo
 
@@ -80,6 +84,41 @@ The application is deployed and accessible at: **[Your Render URL will appear he
 3. **Configure Matching**: Set parameters like number of top candidates, similarity threshold
 4. **AI Enhancement**: Optionally enable AI-powered semantic matching
 5. **Get Results**: View ranked candidates with detailed scoring and explanations
+6. **Export Data**: Download all resumes as ZIP or export analysis as CSV
+
+## 🆕 Latest Features (v2.0)
+
+### Score Consistency
+- **Problem Solved**: Previously, rerunning analysis on the same resumes would change their scores
+- **Solution**: The system now preserves existing AI analysis and scores when reprocessing previously analyzed candidates
+- **Benefit**: Consistent results when refining your candidate pool
+
+### Bulk Download & Export
+- **Bulk Resume Download**: Download all analyzed resumes as a single ZIP file with clean, organized naming
+- **CSV Export**: Export complete analysis data including:
+  - Candidate ranking and scores
+  - Contact information (name, email, phone)
+  - Skills and qualifications
+  - AI analysis and recommendations
+  - Strengths and areas of concern
+- **Use Case**: Perfect for sharing results with team members or importing into other HR systems
+
+### Duplicate Detection
+- **Smart Detection**: Automatically identifies duplicate resumes using multiple criteria:
+  - File content similarity (exact duplicates)
+  - Contact information matching
+  - Skills and experience overlap
+  - Resume text similarity
+- **Intelligent Removal**: Keeps the candidate with higher scores or more complete data
+- **Configurable**: 85% similarity threshold (adjustable)
+
+### Enhanced Contact Extraction
+- **Improved Phone Numbers**: Now extracts complete phone numbers instead of just country codes
+- **Multiple Formats**: Supports various phone number formats:
+  - Indian mobile numbers (+91)
+  - International formats
+  - Formatted and unformatted numbers
+- **Better Accuracy**: Enhanced regex patterns for more reliable extraction
 
 ## 🔧 Configuration
 
@@ -114,8 +153,12 @@ The application uses a multi-layered approach:
 
 ```
 ├── app/
-│   ├── controllers/     # Route handlers
+│   ├── controllers/     # Route handlers (resume, auth, main)
 │   ├── services/        # Business logic
+│   │   ├── ai_matching_service.py      # AI-powered matching
+│   │   ├── duplicate_detection_service.py  # Duplicate detection
+│   │   ├── resume_parser.py            # Resume parsing
+│   │   └── matching_service.py         # Traditional matching
 │   ├── models/          # Database models
 │   ├── utils/           # Utility functions
 │   ├── templates/       # HTML templates
